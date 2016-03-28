@@ -24,7 +24,6 @@ func watcher(path, command string, args[]string) {
             select {
             case event := <-watcher.Events:
                 if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
-                    log.Println("event:", event)
                     runCommand(command, args)
                 }
             case err := <-watcher.Errors:
@@ -65,6 +64,8 @@ func SubFolders(path string) (paths []string) {
 func runCommand(command string, args[]string) {
     cmd := exec.Command(command, args...)
     cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+
     err := cmd.Run()
     if err != nil {
         log.Fatal(err)
@@ -75,6 +76,7 @@ func main() {
     fmt.Println(ansicolor.Cyan("Xavier 0.0.1 is watching your files."))
 
     args := os.Args[1:]
+
     if len(args) == 0 {
         log.Fatal("Not enough arguments")
     }
