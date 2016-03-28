@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "os"
+    "os/exec"
     "log"
     "strings"
     "path/filepath"
@@ -10,11 +11,7 @@ import (
     "github.com/fsnotify/fsnotify"
 )
 
-func header() {
-    fmt.Println(ansicolor.Cyan("Xavier 0.0.1 is watching your files."))
-}
-
-func watcher(path string) {
+func watcher(path, command string, args[]string) {
     watcher, err := fsnotify.NewWatcher()
     if err != nil {
         log.Fatal(err)
@@ -26,7 +23,10 @@ func watcher(path string) {
         for {
             select {
             case event := <-watcher.Events:
-                log.Println("event:", event)
+                if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
+                    log.Println("event:", event)
+                    runCommand(command, args)
+                }
             case err := <-watcher.Errors:
                 log.Println("error", err)
             }
@@ -62,9 +62,23 @@ func SubFolders(path string) (paths []string) {
     return paths
 }
 
+func runCommand(command string, args[]string) {
+    cmd := exec.Command(command, args...)
+    cmd.Stdout = os.Stdout
+    err := cmd.Run()
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
 func main() {
-    header()
+    fmt.Println(ansicolor.Cyan("Xavier 0.0.1 is watching your files."))
+
+    args := os.Args[1:]
+    if len(args) == 0 {
+        log.Fatal("Not enough arguments")
+    }
 
     currentPath, _ := filepath.Abs(".")
-    watcher(currentPath)
+    watcher(currentPath, args[0], args[1:])
 }
